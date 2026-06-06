@@ -4,7 +4,7 @@ import subprocess
 
 import pandas as pd
 
-BASE_DIR = Path(__file__).resolve(strict=True).parent
+BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 RAW_DATA_DIR = BASE_DIR / "sqlite"
 OBJ_DIR = BASE_DIR / "objs"
 DATASETS_DIR = BASE_DIR / "datasets"

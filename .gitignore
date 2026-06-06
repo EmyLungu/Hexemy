@@ -8,3 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+objs
+checkpoints
+tokenizers
+outputs
+datasets
+sqlite

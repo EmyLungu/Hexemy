@@ -1,0 +1,20 @@
+tokenizers:
+  path: "tokenizers/"
+  hex_path: "tokenizers/hex_tokenizer.json"
+  c_path: "tokenizers/c_tokenizer.json"
+
+dataset:
+  path: "datasets/dataset-v1.parquet"
+
+training:
+  batch_size: 4
+  target_effective_batch: 32
+  epochs: 3
+  lr: 1e-4
+  weight_decay: 0.01
+  max_norm: 1.0
+  device: "cuda"
+
+checkpoint:
+  dir: "checkpoints"
+  filename: "hexmodel-v3.pt"
