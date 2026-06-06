@@ -1,5 +1,5 @@
 tokenizers:
-  path: "tokenizers/"
+  path: "tokenizers"
   hex_path: "tokenizers/hex_tokenizer.json"
   c_path: "tokenizers/c_tokenizer.json"
 
@@ -17,4 +17,4 @@ training:
 
 checkpoint:
   dir: "checkpoints"
-  filename: "hexmodel-v3.pt"
+  filename: "hexmodel-v2.pt"

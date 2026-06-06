@@ -121,7 +121,9 @@ def main(cfg: DictConfig):
         "c_vocab_size": c_vocab_size,
     }
 
-    torch.save(checkpoint, "checkpoints/hexmodel-v1.pt")
+    checkpoint_dir = hydra.utils.to_absolute_path(cfg.checkpoint.dir)
+    checkpoint_path = f"{checkpoint_dir}/{cfg.checkpoint.filename}"
+    torch.save(checkpoint, checkpoint_path)
     print("Model saved successfully!")
 
 
