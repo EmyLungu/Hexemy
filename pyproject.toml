@@ -1,7 +1,7 @@
 [project]
 name = "hexemy"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-Powered Hex-to-C Decompiler"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
