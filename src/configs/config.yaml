@@ -4,7 +4,7 @@ tokenizers:
   c_path: "tokenizers/c_tokenizer.json"
 
 dataset:
-  path: "datasets/dataset-v1.parquet"
+  url: "LLM4Binary/decompile-bench"
 
 training:
   batch_size: 4

@@ -36,9 +36,7 @@ def main(cfg: DictConfig):
         else "cpu"
     )
 
-    hf_dataset = load_dataset(
-        "LLM4Binary/decompile-bench", split="train", streaming=True
-    )
+    hf_dataset = load_dataset(cfg.dataset.url, split="train", streaming=True)
     hf_dataset = hf_dataset.shuffle(buffer_size=10000, seed=42)
     dataset = HexDataset(hf_dataset, hex_tokenizer, c_tokenizer)
 

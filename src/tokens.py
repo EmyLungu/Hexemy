@@ -19,9 +19,7 @@ def main(cfg: DictConfig):
     hex_path = hydra.utils.to_absolute_path(cfg.tokenizers.hex_path)
     c_path = hydra.utils.to_absolute_path(cfg.tokenizers.c_path)
 
-    ds = load_dataset(
-        "LLM4Binary/decompile-bench", split="train", streaming=True
-    )
+    ds = load_dataset(cfg.dataset.url, split="train", streaming=True)
 
     hex_tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
     hex_tokenizer.pre_tokenizer = Whitespace()
