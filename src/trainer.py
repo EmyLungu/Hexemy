@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tokenizers import Tokenizer
 
@@ -17,7 +18,6 @@ from Dataset import HexDataset, collate_fn
 def main(cfg: DictConfig):
     hex_tokenizer_path = hydra.utils.to_absolute_path(cfg.tokenizers.hex_path)
     c_tokenizer_path = hydra.utils.to_absolute_path(cfg.tokenizers.c_path)
-    dataset_path = hydra.utils.to_absolute_path(cfg.dataset.path)
 
     hex_tokenizer = Tokenizer.from_file(hex_tokenizer_path)
     c_tokenizer = Tokenizer.from_file(c_tokenizer_path)
@@ -36,12 +36,15 @@ def main(cfg: DictConfig):
         else "cpu"
     )
 
-    dataset = HexDataset(dataset_path, hex_tokenizer, c_tokenizer)
+    hf_dataset = load_dataset(
+        "LLM4Binary/decompile-bench", split="train", streaming=True
+    )
+    hf_dataset = hf_dataset.shuffle(buffer_size=10000, seed=42)
+    dataset = HexDataset(hf_dataset, hex_tokenizer, c_tokenizer)
 
     dataloader = DataLoader(
         dataset,
         batch_size=cfg.training.batch_size,
-        shuffle=True,
         collate_fn=collate_fn,
     )
 
@@ -57,10 +60,6 @@ def main(cfg: DictConfig):
 
     criterion = nn.CrossEntropyLoss(ignore_index=c_pad_idx)
 
-    print(f"Total rows in DataFrame: {len(dataset.df)}")
-    print(f"Total samples in Dataset: {len(dataset)}")
-    print(f"Total batches in DataLoader: {len(dataloader)}")
-
     print("Started Training")
 
     start_time = time.time()
@@ -70,7 +69,10 @@ def main(cfg: DictConfig):
         total_loss = 0
         optimizer.zero_grad()
 
+        batch_count = 0
         for batch_idx, (src, tgt) in enumerate(dataloader):
+            batch_count += 1
+
             src = src.to(device)
             tgt = tgt.to(device)
 
@@ -85,9 +87,7 @@ def main(cfg: DictConfig):
             loss = loss / accumulation_steps
             loss.backward()
 
-            if (batch_idx + 1) % accumulation_steps == 0 or (
-                batch_idx + 1
-            ) == len(dataloader):
+            if (batch_idx + 1) % accumulation_steps == 0:
                 torch.nn.utils.clip_grad_norm_(
                     model.parameters(), max_norm=1.0
                 )
@@ -96,7 +96,7 @@ def main(cfg: DictConfig):
 
             total_loss += loss.item() * accumulation_steps
 
-        avg_loss = total_loss / len(dataloader)
+        avg_loss = total_loss / batch_count
 
         elapsed_time = int(time.time() - start_time)
         minutes = elapsed_time // 60

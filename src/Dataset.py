@@ -1,33 +1,29 @@
 import torch
-from torch.utils.data import Dataset
-import pandas as pd
+from torch.utils.data import IterableDataset
 from torch.nn.utils.rnn import pad_sequence
 
 
-class HexDataset(Dataset):
-    def __init__(self, parquet_path, hex_tokenizer, c_tokenizer):
-        self.df = pd.read_parquet(parquet_path)
+class HexDataset(IterableDataset):
+    def __init__(self, hf_dataset, hex_tokenizer, c_tokenizer):
+        self.hf_dataset = hf_dataset
         self.hex_tokenizer = hex_tokenizer
         self.c_tokenizer = c_tokenizer
 
         self.hex_tokenizer.enable_truncation(max_length=2048)
         self.c_tokenizer.enable_truncation(max_length=2048)
 
-    def __len__(self):
-        return len(self.df)
+    def __iter__(self):
+        for row in self.hf_dataset:
+            raw_hex = row["asm"]
+            raw_c = row["code"]
 
-    def __getitem__(self, index):
-        row = self.df.iloc[index]
-        raw_hex = row["hex"]
-        raw_c = row["target"]
+            hex_tokens = self.hex_tokenizer.encode(raw_hex).ids
+            c_tokens = self.c_tokenizer.encode(raw_c).ids
 
-        hex_tokens = self.hex_tokenizer.encode(raw_hex).ids
-        c_tokens = self.c_tokenizer.encode(raw_c).ids
+            src_tensor = torch.tensor(hex_tokens, dtype=torch.long)
+            tgt_tensor = torch.tensor(c_tokens, dtype=torch.long)
 
-        src_tensor = torch.tensor(hex_tokens, dtype=torch.long)
-        tgt_tensor = torch.tensor(c_tokens, dtype=torch.long)
-
-        return src_tensor, tgt_tensor
+            yield src_tensor, tgt_tensor
 
 
 def collate_fn(batch):
