@@ -1,21 +1,29 @@
+from collections.abc  import Iterator
+from tokenizers import Tokenizer
 import torch
+from torch import Tensor
 from torch.utils.data import IterableDataset
 from torch.nn.utils.rnn import pad_sequence
 
+DatasetItem = tuple[Tensor, Tensor]
+BatchOutput = tuple[Tensor, Tensor]
+
 
 class HexDataset(IterableDataset):
-    def __init__(self, hf_dataset, hex_tokenizer, c_tokenizer):
+    def __init__(
+        self, hf_dataset, hex_tokenizer: Tokenizer, c_tokenizer: Tokenizer
+    ) -> None:
         self.hf_dataset = hf_dataset
-        self.hex_tokenizer = hex_tokenizer
-        self.c_tokenizer = c_tokenizer
+        self.hex_tokenizer: Tokenizer = hex_tokenizer
+        self.c_tokenizer: Tokenizer = c_tokenizer
 
         self.hex_tokenizer.enable_truncation(max_length=2048)
         self.c_tokenizer.enable_truncation(max_length=2048)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[DatasetItem]:
         for row in self.hf_dataset:
-            raw_hex = row["asm"]
-            raw_c = row["code"]
+            raw_hex: str = row["asm"]
+            raw_c: str = row["code"]
 
             hex_tokens = self.hex_tokenizer.encode(raw_hex).ids
             c_tokens = self.c_tokenizer.encode(raw_c).ids
@@ -26,11 +34,13 @@ class HexDataset(IterableDataset):
             yield src_tensor, tgt_tensor
 
 
-def collate_fn(batch):
+def collate_fn(batch: list[DatasetItem]) -> BatchOutput:
     """
     Takes a list of tuples (src_tensor, tgt_tensor) from the Dataset
     and pads them so they can be stacked into unified batches.
     """
+    src_list: list[Tensor]
+    tgt_list: list[Tensor]
     src_list, tgt_list = zip(*batch)
 
     src_padded = pad_sequence(src_list, batch_first=True, padding_value=0)

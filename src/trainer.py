@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from datasets import load_dataset
+from datasets import IterableDataset, load_dataset
 from torch.utils.data import DataLoader
 from tokenizers import Tokenizer
 
@@ -27,16 +27,18 @@ def main(cfg: DictConfig):
     hex_pad_idx = hex_tokenizer.token_to_id("[PAD]")
     c_pad_idx = c_tokenizer.token_to_id("[PAD]")
 
-    accumulation_steps = (
-        cfg.training.target_effective_batch // cfg.training.batch_size
+    accumulation_steps: int = int(cfg.training.target_effective_batch) // int(
+        cfg.training.batch_size
     )
-    device = torch.device(
+    device: torch.device = torch.device(
         "cuda"
         if (cfg.training.device == "cuda" and torch.cuda.is_available())
         else "cpu"
     )
 
-    hf_dataset = load_dataset(cfg.dataset.url, split="train", streaming=True)
+    hf_dataset: IterableDataset = load_dataset(
+        cfg.dataset.url, split="train", streaming=True
+    )
     hf_dataset = hf_dataset.shuffle(buffer_size=10000, seed=42)
     dataset = HexDataset(hf_dataset, hex_tokenizer, c_tokenizer)
 
@@ -62,7 +64,7 @@ def main(cfg: DictConfig):
 
     start_time = time.time()
 
-    model.train()
+    _ = model.train()
     for epoch in range(cfg.training.epochs):
         total_loss = 0
         optimizer.zero_grad()
@@ -71,13 +73,13 @@ def main(cfg: DictConfig):
         for batch_idx, (src, tgt) in enumerate(dataloader):
             batch_count += 1
 
-            src = src.to(device)
-            tgt = tgt.to(device)
+            src: torch.Tensor = src.to(device)
+            tgt: torch.Tensor = tgt.to(device)
 
             tgt_input = tgt[:, :-1]
             tgt_expected = tgt[:, 1:]
 
-            output = model(src, tgt_input, hex_pad_idx, c_pad_idx)
+            output: torch.Tensor = model(src, tgt_input, hex_pad_idx, c_pad_idx)
 
             loss = criterion(
                 output.reshape(-1, c_vocab_size), tgt_expected.reshape(-1)
@@ -86,7 +88,7 @@ def main(cfg: DictConfig):
             loss.backward()
 
             if (batch_idx + 1) % accumulation_steps == 0:
-                torch.nn.utils.clip_grad_norm_(
+                _ = torch.nn.utils.clip_grad_norm_(
                     model.parameters(), max_norm=1.0
                 )
                 optimizer.step()

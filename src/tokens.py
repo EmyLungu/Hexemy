@@ -1,21 +1,28 @@
+from collections.abc import Iterator
+from typing import Any
+
 import hydra
 from omegaconf import DictConfig
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel, BPE
 from tokenizers.trainers import WordLevelTrainer, BpeTrainer
 from tokenizers.pre_tokenizers import Whitespace
-from datasets import load_dataset
+from datasets import IterableDataset, load_dataset
 
 
-def batch_iterator(dataset, column_name):
-    """A generator that yields text from a specific column
-    in a streaming dataset."""
+def batch_iterator(
+    dataset: IterableDataset, column_name: str
+) -> Iterator[str]:
+    """
+    A generator that yields text from a specific column
+    in a streaming dataset.
+    """
     for item in dataset:
-        yield item[column_name]
+        yield str(item[column_name])
 
 
 @hydra.main(version_base="1.3", config_path="configs", config_name="config")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     hex_path = hydra.utils.to_absolute_path(cfg.tokenizers.hex_path)
     c_path = hydra.utils.to_absolute_path(cfg.tokenizers.c_path)
 

@@ -6,16 +6,23 @@ import torch.nn as nn
 
 class HexModel(nn.Module):
     def __init__(
-        self, hex_vocab_size, c_vocab_size, d_model=512, nhead=8, num_layers=6
+        self,
+        hex_vocab_size: int,
+        c_vocab_size: int,
+        d_model: int = 512,
+        nhead: int = 8,
+        num_layers: int = 6,
     ) -> None:
         super().__init__()
-        self.d_model = d_model
+        self.d_model: int = d_model
 
-        self.hex_embedding = nn.Embedding(hex_vocab_size, d_model)
-        self.c_embedding = nn.Embedding(c_vocab_size, d_model)
-        self.pos_encoder = PositionalEncoder(d_model)
+        self.hex_embedding: nn.Embedding = nn.Embedding(
+            hex_vocab_size, d_model
+        )
+        self.c_embeddin: nn.Embedding = nn.Embedding(c_vocab_size, d_model)
+        self.pos_encoder: PositionalEncoder = PositionalEncoder(d_model)
 
-        self.transformer = nn.Transformer(
+        self.transformer: nn.Transformer = nn.Transformer(
             d_model=d_model,
             nhead=nhead,
             num_encoder_layers=num_layers,
@@ -25,11 +32,11 @@ class HexModel(nn.Module):
 
         self.fc_out = nn.Linear(d_model, c_vocab_size)
 
-    def forward(self, src, tgt, src_pad_idx, tgt_pad_idx):
+    def forward(self, src, tgt, src_pad_idx, tgt_pad_idx) -> torch.Tensor:
         src_key_padding_mask = self.make_src_padding_mask(src, src_pad_idx)
         tgt_key_padding_mask = self.make_src_padding_mask(tgt, tgt_pad_idx)
 
-        tgt_len = tgt.size(1)
+        tgt_len: int = tgt.size(1)
         tgt_mask = self.transformer.generate_square_subsequent_mask(
             tgt_len, device=src.device, dtype=torch.bool
         )
@@ -59,7 +66,7 @@ class HexModel(nn.Module):
 
 
 class PositionalEncoder(nn.Module):
-    def __init__(self, d_model, max_len=5000) -> None:
+    def __init__(self, d_model: int, max_len: int = 5000) -> None:
         super().__init__()
 
         pe = torch.zeros(max_len, d_model)
