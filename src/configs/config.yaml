@@ -17,4 +17,4 @@ training:
 
 checkpoint:
   dir: "checkpoints"
-  filename: "hexmodel-v2.pt"
+  filename: "hexmodel-v3.pt"

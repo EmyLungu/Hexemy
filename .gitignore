@@ -9,9 +9,12 @@ wheels/
 # Virtual environments
 .venv
 
-objs
 checkpoints
 tokenizers
 outputs
 datasets
-sqlite
+
+*.asm
+*.c
+*.o
+*.s

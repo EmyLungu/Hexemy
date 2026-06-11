@@ -3,6 +3,12 @@ from omegaconf import DictConfig
 import torch
 from tokenizers import Tokenizer
 from Model import HexModel
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve(strict=True).parent
+SAMPLES_DIR = BASE_DIR / "samples"
+
+test_files = ["t1_O0"]
 
 
 def decompile(
@@ -19,7 +25,7 @@ def decompile(
     src_tensor = torch.tensor([hex_tokens], dtype=torch.long).to(device)
     tgt_tokens = [sos_idx]
 
-    temperature = 0.6
+    temperature = 0.1
     top_p = 0.9
     repetition_penalty = 1.5
 
@@ -31,18 +37,22 @@ def decompile(
             )
 
             output = model(src_tensor, tgt_tensor, hex_pad_idx, c_pad_idx)
-            next_token_logits = output[0, -1, :]
+            next_token_logits = output[0, -1, :].clone()
 
-            for token_id in set(tgt_tokens):
-                if token_id in [sos_idx, c_pad_idx]:
-                    continue
+            penalized_tokens = set(tgt_tokens) - {sos_idx, c_pad_idx, eos_idx}
+            if penalized_tokens:
+                penalty_indices = torch.tensor(
+                    list(penalized_tokens), dtype=torch.long, device=device
+                )
+                logits_to_penalize = next_token_logits[penalty_indices]
+                next_token_logits[penalty_indices] = torch.where(
+                    logits_to_penalize > 0,
+                    logits_to_penalize / repetition_penalty,
+                    logits_to_penalize * repetition_penalty,
+                )
 
-                if next_token_logits[token_id] > 0:
-                    next_token_logits[token_id] /= repetition_penalty
-                else:
-                    next_token_logits[token_id] *= repetition_penalty
-
-            next_token_logits /= temperature
+            if temperature > 0:
+                next_token_logits /= temperature
 
             sorted_logits, sorted_indices = torch.sort(
                 next_token_logits, descending=True
@@ -73,8 +83,9 @@ def decompile(
     return c_tokenizer.decode(tgt_tokens)
 
 
-@hydra.main(version_base="1.3", config_path="configs", config_name="config")
+@hydra.main(version_base="1.3", config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
+
     hex_tokenizer_path = hydra.utils.to_absolute_path(cfg.tokenizers.hex_path)
     c_tokenizer_path = hydra.utils.to_absolute_path(cfg.tokenizers.c_path)
 
@@ -101,17 +112,20 @@ def main(cfg: DictConfig):
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    sample_hex = "55 48 89 e5 48 83 ec 10 c7 45 fc 00 00 00 00 8b 45 fc 5d c3"
+    for test_file in test_files:
+        file = SAMPLES_DIR / (test_file + ".asm")
+        with file.open(mode="r") as f:
+            sample_hex = f.read()
 
-    print("\n--- TARGET MACHINE HEX ---")
-    print(sample_hex)
+        print("\n--- TARGET MACHINE HEX ---")
+        print(sample_hex)
 
-    decompiled_c = decompile(
-        sample_hex, model, hex_tokenizer, c_tokenizer, device
-    )
-    print("\n--- MODEL PREDICTED C CODE ---")
-    print(decompiled_c)
+        decompiled_c = decompile(
+            sample_hex, model, hex_tokenizer, c_tokenizer, device
+        )
+        print("\n--- MODEL PREDICTED C CODE ---")
+        print(decompiled_c)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

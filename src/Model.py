@@ -19,7 +19,7 @@ class HexModel(nn.Module):
         self.hex_embedding: nn.Embedding = nn.Embedding(
             hex_vocab_size, d_model
         )
-        self.c_embeddin: nn.Embedding = nn.Embedding(c_vocab_size, d_model)
+        self.c_embedding: nn.Embedding = nn.Embedding(c_vocab_size, d_model)
         self.pos_encoder: PositionalEncoder = PositionalEncoder(d_model)
 
         self.transformer: nn.Transformer = nn.Transformer(
